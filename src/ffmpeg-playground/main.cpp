@@ -618,8 +618,8 @@ int main(int argc, char **argv)
         goto end;
 
     /* read all packets */
-    //while (1) {
-      for(int t=0; t < 50; t++){
+    while (1) {
+    //  for(int t=0; t < 50; t++){
         if ((ret = av_read_frame(ifmt_ctx, packet)) < 0)
             break;
         stream_index = packet->stream_index;
