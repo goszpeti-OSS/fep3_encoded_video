@@ -17,6 +17,8 @@ target_link_libraries("ffmpeg-playground" PRIVATE
         ffmpeg::postproc
 )
 
+add_subdirectory(player)
+
 # if(MSVC)
 #     # warning coming from dds headers
 #     target_compile_options(${PLUGIN_NAME} PRIVATE /wd4245)

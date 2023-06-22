@@ -66,5 +66,11 @@
         </source>
         <iid>simulation_bus.arya.fep3.iid</iid>
     </component>
+    <component>
+        <source type="cpp-plugin">
+		encoded_video/fep3_encoded_video_plugin
+        </source>
+        <iid>encoded_video.arya.fep3.iid</iid>
+    </component>
 </components>
 

@@ -1,7 +1,7 @@
 #include <fep3/plugin/cpp/cpp_plugin_impl_arya.hpp>
 #include <fep3/plugin/cpp/cpp_plugin_component_factory.h>
 #include <fep3/components/base/component.h>
-#include "fep_component.h"
+#include "fep_encoded_video.h"
 
 #include <functional>
 
@@ -13,7 +13,7 @@ void fep3_plugin_getPluginVersion(void(*callback)(void*, const char*), void* des
 
  fep3::plugin::cpp::arya::ICPPPluginComponentFactory* fep3_plugin_cpp_arya_getFactory()
  {
-     return new fep3::plugin::cpp::arya::CPPPluginComponentFactory<FastDDSSimulationBus>();
+     return new fep3::plugin::cpp::arya::CPPPluginComponentFactory<EncodedVideoComponent>();
  }
 
 

@@ -14,6 +14,7 @@ ${SRCS}
 )
 
 # target_compile_options(${PLUGIN_NAME} PRIVATE "/Od")
+target_compile_definitions(${PLUGIN_NAME} PRIVATE BUILD_PLUGIN)
 
 target_link_libraries(${PLUGIN_NAME} PRIVATE
  # ffmpeg::ffmpeg
@@ -37,31 +38,31 @@ if(MSVC)
     install(FILES $<TARGET_PDB_FILE:${PLUGIN_NAME}> DESTINATION lib/fast_dds OPTIONAL)
 endif()
 
-add_custom_command(TARGET ${PLUGIN_NAME} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        ${CMAKE_CURRENT_SOURCE_DIR}/fep3_participant.fep_components
-        $<TARGET_FILE_DIR:${PLUGIN_NAME}>
-)
-add_custom_command(TARGET ${PLUGIN_NAME} POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-    ${CMAKE_CURRENT_SOURCE_DIR}/USER_QOS_PROFILES.xml
-    $<TARGET_FILE_DIR:${PLUGIN_NAME}>
-)
+# add_custom_command(TARGET ${PLUGIN_NAME} POST_BUILD
+#         COMMAND ${CMAKE_COMMAND} -E copy_if_different
+#         ${CMAKE_CURRENT_SOURCE_DIR}/fep3_participant.fep_components
+#         $<TARGET_FILE_DIR:${PLUGIN_NAME}>
+# )
+# add_custom_command(TARGET ${PLUGIN_NAME} POST_BUILD
+#     COMMAND ${CMAKE_COMMAND} -E copy_if_different
+#     ${CMAKE_CURRENT_SOURCE_DIR}/USER_QOS_PROFILES.xml
+#     $<TARGET_FILE_DIR:${PLUGIN_NAME}>
+# )
 
 # fast_deploy(${PLUGIN_NAME} $<TARGET_FILE_DIR:${PLUGIN_NAME}>)
 # fast_install(lib/fast_dds)
 
 install(TARGETS ${PLUGIN_NAME}
         EXPORT ${PLUGIN_NAME}_targets
-        LIBRARY NAMELINK_SKIP DESTINATION lib/fast_dds
-        RUNTIME DESTINATION lib/fast_dds)
+        LIBRARY NAMELINK_SKIP DESTINATION lib/encoded_video
+        RUNTIME DESTINATION lib/encoded_video)
 
 install(EXPORT ${PLUGIN_NAME}_targets DESTINATION lib/cmake)
 
 install(FILES 
         fep3_participant.fep_components
-        fep3-fast-plugin-macros.cmake
-        USER_QOS_PROFILES.xml
-        USER_QOS_PROFILES_FULL.xml
+        #fep3-fast-plugin-macros.cmake
+        #USER_QOS_PROFILES.xml
+        #USER_QOS_PROFILES_FULL.xml
         DESTINATION lib
 )
