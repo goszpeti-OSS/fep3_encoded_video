@@ -77,5 +77,5 @@ add_subdirectory(src)
 
 if(ENABLE_TESTS)
     enable_testing()
-    # add_subdirectory(test)
+    add_subdirectory(test)
 endif()

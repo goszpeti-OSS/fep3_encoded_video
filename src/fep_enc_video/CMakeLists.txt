@@ -13,7 +13,11 @@ add_library(${PLUGIN_NAME} SHARED
 ${SRCS}
 )
 
-# target_compile_options(${PLUGIN_NAME} PRIVATE "/Od")
+# target_include_directories(${PLUGIN_NAME} PUBLIC
+#     "${CMAKE_CURRENT_LIST_DIR}"
+# )
+
+target_compile_options(${PLUGIN_NAME} PRIVATE "/Od")
 target_compile_definitions(${PLUGIN_NAME} PRIVATE BUILD_PLUGIN)
 
 target_link_libraries(${PLUGIN_NAME} PRIVATE

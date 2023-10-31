@@ -11,6 +11,38 @@ SDL_Color White = { 255, 255, 255 };
 uint16_t tick_interval = 20;
 
 uint64_t next_time, time_left;
+
+static AVBufferRef* hw_device_ctx = NULL;
+static enum AVPixelFormat hw_pix_fmt;
+
+static int hw_decoder_init(AVCodecContext* ctx, const enum AVHWDeviceType type)
+{
+	int err = 0;
+
+	if ((err = av_hwdevice_ctx_create(&hw_device_ctx, type,
+		NULL, NULL, 0)) < 0) {
+		fprintf(stderr, "Failed to create specified HW device.\n");
+		return err;
+	}
+	ctx->hw_device_ctx = av_buffer_ref(hw_device_ctx);
+
+	return err;
+}
+
+static enum AVPixelFormat get_hw_format(AVCodecContext* ctx,
+	const enum AVPixelFormat* pix_fmts)
+{
+	const enum AVPixelFormat* p;
+
+	for (p = pix_fmts; *p != -1; p++) {
+		//if (*p == hw_pix_fmt)
+		return *p;
+	}
+
+	fprintf(stderr, "Failed to get HW surface format.\n");
+	return AV_PIX_FMT_NONE;
+}
+
  
 
 Player* Player::instance = 0;
@@ -99,6 +131,7 @@ void Player::clear()
 
 	// Close the video file
 	avformat_close_input(&pFormatCtx);
+	av_buffer_unref(&hw_device_ctx);
 
 	delete Player::get_instance();
 }
@@ -158,6 +191,20 @@ int Player::read_audio_video_codec(void)
 
 	//if (res < 0) 
 	//	Utils::display_exception("Failed to transfer audio parameters to context");
+	pCodecCtx->get_format = get_hw_format;
+
+	std::string hw_type_str = "d3d11va";
+	auto type = av_hwdevice_find_type_by_name(hw_type_str.c_str());
+	if (type == AV_HWDEVICE_TYPE_NONE) {
+		fprintf(stderr, "Device type %s is not supported.\n", hw_type_str.c_str());
+		fprintf(stderr, "Available device types:");
+		while ((type = av_hwdevice_iterate_types(type)) != AV_HWDEVICE_TYPE_NONE)
+			fprintf(stderr, " %s", av_hwdevice_get_type_name(type));
+		fprintf(stderr, "\n");
+		return -1;
+	}
+	if (hw_decoder_init(pCodecCtx, type) < 0)
+		return -1;
 
 	res = avcodec_open2(pCodecCtx, pCodec, NULL);
 
@@ -281,12 +328,30 @@ int Player::display_video(void) {
 			if (res < 0)
 				Utils::display_ffmpeg_exception(res);
 
-			res = avcodec_receive_frame(pCodecCtx, pFrame);		
+			res = avcodec_receive_frame(pCodecCtx, pFrame);
+			// hw decode
+			AVFrame* sw_frame = NULL;
+			AVFrame* tmp_frame = NULL;
+			int ret = 0;
+
+			sw_frame = av_frame_alloc();
+
+			if (pFrame->format == hw_pix_fmt) {
+				/* retrieve data from GPU to CPU */
+				if ((ret = av_hwframe_transfer_data(sw_frame, pFrame, 0)) < 0) {
+					fprintf(stderr, "Error transferring the data to system memory\n");
+				}
+				tmp_frame = sw_frame;
+			}
+			else
+				tmp_frame = pFrame;
+
+
 			 //if (pFrame->linesize[0] > 0 && pFrame->linesize[1] > 0 && pFrame->linesize[2] > 0) {
 				 SDL_UpdateYUVTexture(bmp, NULL,
-					 pFrame->data[0], pFrame->linesize[0],
-					 pFrame->data[1], pFrame->linesize[2],
-					 pFrame->data[2], pFrame->linesize[2]);
+					 tmp_frame->data[0], tmp_frame->linesize[0],
+					 tmp_frame->data[1], tmp_frame->linesize[2],
+					 tmp_frame->data[2], tmp_frame->linesize[2]);
 			 //}
 			 //else if (pFrame->linesize[0] < 0 && pFrame->linesize[1] < 0 && pFrame->linesize[2] < 0) {
 				// SDL_UpdateYUVTexture(bmp, NULL, pFrame->data[0] + pFrame->linesize[0] * (pFrame->height - 1), -pFrame->linesize[0],

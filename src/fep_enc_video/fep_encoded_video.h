@@ -25,4 +25,10 @@ public:
     EncodedVideoComponent& operator=(const EncodedVideoComponent&) = delete;
     EncodedVideoComponent& operator=(EncodedVideoComponent&&) = delete;
 
+public:
+
+    fep3::Result create() override;
+    fep3::Result destroy() override;
+    fep3::Result initialize() override;
+    fep3::Result deinitialize() override;
 };

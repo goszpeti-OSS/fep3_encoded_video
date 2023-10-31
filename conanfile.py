@@ -32,7 +32,8 @@ class ConanProduct(ConanFile):
     def requirements(self):
         self.requires("fep_sdk_participant/3.1.0", private=True)
         self.requires("fep_fast_dds_plugin/0.1.0@local/testing", private=True)
-        self.requires("ffmpeg/5.1", private=True)
+        #self.requires("ffmpeg/5.1", private=True)
+        self.requires("avcpp/2.1.0", private=True)
         self.requires("freetype/2.13.0", override=True)
         self.requires("sdl_ttf/2.20.1", private=True)
         # opengl for player

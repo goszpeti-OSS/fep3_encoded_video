@@ -1,6 +1,21 @@
-add_subdirectory(player)
-add_subdirectory(hw_decode)
-add_subdirectory(record_camera)
+set(CMAKE_BUILD_TYPE ${CONAN_SETTINGS_BUILD_TYPE})  #
+#####################################################
+
+add_executable("hw_decode"
+    main.cpp
+)
+target_compile_options("hw_decode" PRIVATE "/Od")
+
+target_link_libraries("hw_decode" PRIVATE
+        dev_essential::filesystem
+        dev_essential::system
+        ffmpeg::ffmpeg
+        ffmpeg::avutil
+        ffmpeg::avdevice
+        ffmpeg::avcodec
+        ffmpeg::avformat
+        ffmpeg::postproc
+)
 
 # if(MSVC)
 #     # warning coming from dds headers
