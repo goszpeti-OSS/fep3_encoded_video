@@ -69,9 +69,10 @@ install(FILES LICENSE
 )
 find_package(dev_essential REQUIRED COMPONENTS pkg_rpc system filesystem)
 find_package(fep3_participant REQUIRED)
-find_package(ffmpeg REQUIRED)
-find_package(SDL2 REQUIRED)
-find_package(SDL2_ttf REQUIRED)
+# find_package(ffmpeg REQUIRED)
+# find_package(SDL2 REQUIRED)
+# find_package(SDL2_ttf REQUIRED)
+find_package(Qt6 COMPONENTS Gui Multimedia MultimediaWidgets)
 
 add_subdirectory(src)
 

@@ -6,6 +6,8 @@
 #include <fep3/components/base/component.h>
 #include <fep3/components/logging/logging_service_intf.h>
 
+#include <QtMultimedia/QVideoFrame.h>
+
 #if defined _WIN32
 #ifdef BUILD_PLUGIN
 #define EXPORTED __declspec(dllexport)
