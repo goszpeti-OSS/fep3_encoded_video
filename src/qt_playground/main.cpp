@@ -17,36 +17,6 @@
 #include <stdio.h>
 using namespace std::chrono;
 
-void preciseSleep(double seconds) {
-    using namespace std;
-    using namespace std::chrono;
-
-    static double estimate = 5e-3;
-    static double mean = 5e-3;
-    static double m2 = 0;
-    static int64_t count = 1;
-
-    while (seconds > estimate) {
-        auto start = high_resolution_clock::now();
-        this_thread::sleep_for(milliseconds(1));
-        auto end = high_resolution_clock::now();
-
-        double observed = (end - start).count() / 1e9;
-        seconds -= observed;
-
-        ++count;
-        double delta = observed - mean;
-        mean += delta / count;
-        m2   += delta * (observed - mean);
-        double stddev = sqrt(m2 / (count - 1));
-        estimate = mean + stddev;
-    }
-
-    // spin lock
-    auto start = high_resolution_clock::now();
-    while ((high_resolution_clock::now() - start).count() / 1e9 < seconds);
-}
-
 bool checkCameraAvailability()
 {
     if (QMediaDevices::videoInputs().count() > 0)
@@ -58,13 +28,12 @@ class MyCapture : public QImageCapture {
 public slots:
 
     void  onImageAvailable(int id, const QVideoFrame& frame) {
-        auto log_time = a_util::system::getCurrentMicroseconds();
-        if (!frame.isMapped()) {
-            LOG_INFO(a_util::strings::format("frame delta time: %d us", frame.endTime() - frame.startTime()).c_str());
-            LOG_INFO(a_util::strings::format("real time: %d us", log_time - last_log_time).c_str());
-        }
+        auto log_time = high_resolution_clock::now();
+        int duration = (log_time - last_log_time).count() / 1e6;
+        printf(a_util::strings::format("delta time: %d ms\n", duration).c_str());
+        last_log_time = log_time;
     }
-    timestamp_t last_log_time = 0;
+    steady_clock::time_point last_log_time;
 
 };
 
@@ -79,12 +48,7 @@ public slots:
 
     void process() {
 
-        auto log_time = high_resolution_clock::now();
-        int duration = (log_time - last_log_time).count() / 1e6;
 
-        //LOG_INFO(a_util::strings::format("frame delta time: %d us", frame.endTime() - frame.startTime()).c_str());
-        printf(a_util::strings::format("delta time: %d ms\n", duration).c_str());
-        last_log_time = log_time;
         auto frame = this->videoFrame();
         if (!frame.isValid()) {
             return;
@@ -96,11 +60,34 @@ public slots:
        auto size = frame.mappedBytes(0);
        auto b1 = frame.videoBuffer();
        auto s1 = frame.pixelFormat();
-       //auto i1 = frame.toImage();
-       //label->setPixmap(QPixmap::fromImage(i1));
-       auto buffer = std::malloc(size);
-       std::memcpy(buffer, begin, size);
-       frame.unmap();
+       auto i1 = frame.toImage();
+       
+        i1.save("test.jpeg", "JPEG", 80);
+
+       QByteArray ba;
+       QBuffer buffer{ &ba };
+       //ba.fromRawData(begin, size);
+
+     //buffer.open(QIODevice::WriteOnly);
+     //i1.save(&buffer,"JPEG",40);
+    //    QFile a;
+    //    a.setFileName("test.jpeg");
+    //    a.open(QIODevice::WriteOnly);
+       //a.close();
+        //printf("%s", buffer.data().toBase64().toStdString().c_str());
+    //    auto buffer = std::malloc(size);
+    //    std::memcpy(buffer, begin, size);
+        //buffer.close();
+        //label->setPixmap(QPixmap::fromImage(i1));
+
+        frame.unmap();
+        auto log_time = high_resolution_clock::now();
+        int duration = (log_time - last_log_time).count() / 1e6;
+
+        //LOG_INFO(a_util::strings::format("frame delta time: %d us", frame.endTime() - frame.startTime()).c_str());
+        printf(a_util::strings::format("delta time: %d ms\n", duration).c_str());
+        last_log_time = log_time;
+
     }
     
     void onVideoFrameChanged(const QVideoFrame& frame) {
@@ -120,6 +107,7 @@ public slots:
     QLabel* label = nullptr;
     steady_clock::time_point last_log_time;
     QBasicTimer timer;
+
 };
 
 int main(int argc, char *argv[])
@@ -155,7 +143,6 @@ int main(int argc, char *argv[])
     QMediaCaptureSession captureSession;
     captureSession.setCamera(camera);
     //captureSession.setImageCapture(&qic);
-    
     //captureSession.setVideoOutput(videoWidget);
     MySink sink(label);
     captureSession.setVideoSink(&sink);
@@ -177,7 +164,7 @@ int main(int argc, char *argv[])
 
     //rec.setVideoFrameRate()
     //QObject::connect(&sink, &QVideoSink::videoFrameChanged, &sink, &MySink::onVideoFrameChanged);
-    //QObject::connect(&qic, &QImageCapture::imageAvailable, &qic, &MyCapture::onImageAvailable);
+    QObject::connect(&qic, &QImageCapture::imageAvailable, &qic, &MyCapture::onImageAvailable);
     //rec.record();
 
     //auto timer = new QTimer();
@@ -187,12 +174,7 @@ int main(int argc, char *argv[])
     //timer->start();
     qDebug() << qic.errorString();
     qDebug() << qic.error();
-    using namespace std::chrono;
 
     app.exec();
-    /*while (true) {
-        preciseSleep(0.01);
-        sink.process();
-    }*/
     return 0;
 }

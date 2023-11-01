@@ -43,4 +43,5 @@ if (MSVC)
             ${CONAN_QT_ROOT}/res/archdatadir/plugins/platforms/qwindows.dll
             $<TARGET_FILE_DIR:${TARGET_NAME}>/platforms/
     )
+    #TODO need to delpoy jpeg and other plugins
 endif()

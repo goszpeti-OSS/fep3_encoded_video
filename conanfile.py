@@ -13,7 +13,8 @@ class ConanProduct(ConanFile):
     default_options = {
         "fast-dds:shared": False,
         "qt:qtmultimedia": True,
-        "qt:shared": True
+        "qt:shared": True,
+        "qt:with_libjpeg": "libjpeg-turbo"
     }
 
     scm = {
