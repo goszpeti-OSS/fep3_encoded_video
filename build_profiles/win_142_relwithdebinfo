@@ -1,0 +1,15 @@
+[settings]
+os=Windows
+arch=x86_64
+compiler=Visual Studio
+compiler.version=16
+compiler.toolset=v142
+&:build_type=RelWithDebInfo
+fep*:build_type=RelWithDebInfo
+dev_essential*:build_type=RelWithDebInfo
+fast-dds*:build_type=RelWithDebInfo
+*:build_type=Release
+[options]
+
+[env]
+CONAN_DISABLE_STRICT_MODE=1 
