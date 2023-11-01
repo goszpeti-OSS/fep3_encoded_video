@@ -16,6 +16,8 @@ target_compile_options(${TARGET_NAME} PRIVATE "/Od")
 
 target_link_libraries(${TARGET_NAME} PRIVATE
     qt::qt
+    dev_essential::dev_essential
+
 )
 
 # Qt base libs for debug
