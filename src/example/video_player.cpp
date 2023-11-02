@@ -1,86 +1,53 @@
-/**
- * @file
- * @copyright
- * @verbatim
-Copyright @ 2021 VW Group. All rights reserved.
-
-    This Source Code Form is subject to the terms of the Mozilla
-    Public License, v. 2.0. If a copy of the MPL was not distributed
-    with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
-
-If it is not possible or desirable to put the notice in a particular file, then
-You may include the notice in a location (such as a LICENSE file in a
-relevant directory) where a recipient would be likely to look for such a notice.
-
-You may add additional accurate notices of copyright ownership.
-
-@endverbatim
- */
-
+#include <chrono>
+#include <thread>
 #include <iostream>
 #include <memory>
 #include <string>
+#include <math.h>
+#include <stdio.h>
 
 #include <fep3/core.h>
 #include <fep3/core/element_configurable.h>
-#include <chrono>
-#include <thread>
-#include <math.h>
-#include <stdio.h>
-using namespace std::chrono;
-#include "video.h"
 
+#include <QtMultimedia/QVideoFrame.h>
+#include <QtMultimedia/QMediaPlayer.h>
+#include <QMediaDevices>
+#include <QtMultimediaWidgets>
+#include <QAudioDevice>
+#include <QAudioOutput>
+#include <QApplication>
+
+#include "video.h"
 
 using namespace fep3;
 using namespace std::chrono_literals;
+using namespace std::chrono;
 
 
 void MyLabel::onImageAvailable(const QImage &newValue){
     this->setPixmap(QPixmap::fromImage(newValue));
 };
 MyLabel* label = nullptr;
+fep3::base::DataSample data_sample;
+
+
 class MySink : public QVideoSink {
-
 public:
-    MySink(MyLabel* label) : label(label) {
-        //timer.start(10, this);
+    MySink(MyLabel* label) {
     }
-public:
 
-    void process() {
-        auto frame = this->videoFrame();
-        if (!frame.isValid()) {
+    void process() { // fep3::base::DataSample data_sample
+        auto new_ba = QByteArray::fromRawData((char*)data_sample.cdata(), data_sample.getSize());
+        if (new_ba.isEmpty()){
             return;
         }
-        frame.map(QVideoFrame::ReadOnly);
-       bool b = frame.isReadable();
-       auto mode = frame.mapMode();
-       auto begin = frame.bits(0);
-       auto size = frame.mappedBytes(0);
-       auto b1 = frame.videoBuffer();
-       auto s1 = frame.pixelFormat();
-       auto i1 = frame.toImage();
-       emit  label->imageAvailable(i1);
-       frame.unmap();
-        auto log_time = high_resolution_clock::now();
-        int duration = (log_time - last_log_time).count() / 1e6;
-
-        //LOG_INFO(a_util::strings::format("frame delta time: %d us", frame.endTime() - frame.startTime()).c_str());
-        printf(a_util::strings::format("delta time: %d ms\n", duration).c_str());
-        // printf("%d", frame.endTime());
-        last_log_time = log_time;
-
-    }
-    void timerEvent(QTimerEvent* event)
-    {
-        if (event->timerId() == timer.timerId()) {
-            process();
+        auto new_image = QImage::fromData(new_ba, "JPEG");
+        if (new_image.isNull()){
+            return;
         }
+        emit  label->imageAvailable(new_image);
     }
-    MyLabel* label = nullptr;
-    steady_clock::time_point last_log_time;
-    QBasicTimer timer;
-
+    
 };
 MySink* sink = nullptr;
 
@@ -119,11 +86,6 @@ public:
 class EasyCoreReceiverElement : public core::ElementConfigurable
 {
 public:
-    //Implementation of the CTOR!
-    //ElementConfigurable has no default CTOR
-    // you must define a type of your element -> to identify your implementation in a system
-    // you must define a implementation version -> to identify your implementation version in a system
-    // KEEP in MIND THIS IS NOT THE ELEMENT INSTANCE NAME!
     EasyCoreReceiverElement()
         : core::ElementConfigurable("Demo Element Base Receiver Type",
             FEP3_PARTICIPANT_LIBRARY_VERSION_STR)
@@ -139,18 +101,19 @@ public:
     fep3::Result load() override
     {
         //register the job
-        return core::addToComponents("receiver_job", _my_job, { 40ms }, *getComponents());
+        return core::addToComponents("receiver_job", _my_job, { 20ms }, *getComponents());
 
     }
 
     fep3::Result initialize() override
     {
         auto video_type = base::StreamType(fep3::base::arya::meta_type_video);
-        // video_type.setProperty("height", "3840", "uint32_t");
-        // video_type.setProperty("width", "2160", "uint32_t");
-        // video_type.setProperty("pixelformat", "R(8)G(9)B(8)", "string");
-        //video_type.setProperty(fep3::base::arya::meta_type_prop_name_max_byte_size, "24883200", "uint32_t");
-        _data_reader_video = std::make_shared<core::DataReader>("video_stream", video_type);
+        video_type.setProperty("height", "3840", "uint32_t");
+        video_type.setProperty("width", "2160", "uint32_t");
+        video_type.setProperty("pixelformat", "R(8)G(9)B(8)", "string");
+        auto raw_type = base::StreamType(fep3::base::arya::meta_type_raw);
+
+        _data_reader_video = std::make_shared<core::DataReader>("video_stream", raw_type);
 
         //register the data
         auto data_adding_res = core::addToComponents(*_data_reader_video, *getComponents());
@@ -179,15 +142,24 @@ public:
 
     fep3::Result process(fep3::Timestamp sim_time_of_execution)
     {
-        sink->process();
-
-        //receive string value
-        Optional<std::string> received_string_value;
-        *_data_reader_video >> received_string_value;
-        if (received_string_value.has_value())
-        {
-            FEP3_LOG_INFO("received string value:" + received_string_value.value());
+        auto read_sample = _data_reader_video->readSampleLatest();
+        if (read_sample == nullptr){
+            return {};
         }
+
+        std::lock_guard<std::mutex> g(mymutex);
+        read_sample->read(data_sample);
+        if (!(data_sample.getSize() == 0)){
+            sink->process();
+        }
+        // if (received_string_value.has_value())
+        // {
+        //     FEP3_LOG_INFO("received string value:" + received_string_value.value());
+        // }
+        auto log_time = high_resolution_clock::now();
+        int duration = (log_time - _last_log_time).count() / 1e6;
+        printf(a_util::strings::format("delta time: %d ms\n", duration).c_str());
+        _last_log_time = log_time;
         return {};
     }
 
@@ -196,6 +168,8 @@ public:
     //have a look at the fep3::cpp::DataJob in cpp API
     std::shared_ptr<EasyReceiverJob> _my_job;
     std::shared_ptr<core::DataReader> _data_reader_video;
+    std::mutex mymutex;
+    steady_clock::time_point _last_log_time{};
 };
 
 
@@ -206,37 +180,28 @@ int main(int argc, char *argv[])
     int argc2 = 0;
     char **argv2; 
     QApplication  app(argc2, argv2);
-        
-    auto default_device = QMediaDevices::defaultVideoInput();
-    QCamera* camera = new QCamera(default_device);
-    QMediaCaptureSession captureSession;
-    captureSession.setCamera(camera);
-    //captureSession.setImageCapture(&qic);
-    // captureSession.setVideoOutput(videoWidget);
     label = new MyLabel();
-    sink = new MySink(label);
-    captureSession.setVideoSink(sink);
+    label->setFixedSize(1066, 600);
+    label->setScaledContents(true);
+    label->show();
+    QObject::connect(label, &MyLabel::imageAvailable, label, &MyLabel::onImageAvailable);
 
-    camera->start();
-
-    std::thread t([argc, argv](){
+    std::thread t([argc, argv, &app](){
         try
         {
             auto part = core::createParticipant<core::ElementFactory<EasyCoreReceiverElement>>(
                 argc, argv,
                 "My Demo Participant Version 1.0",
-                { "video_receiver", "video_system", "" });
-            return part.exec();
+                { "video_player", "video_system", "" });
+            part.exec();
+            app.quit();
         }
         catch (const std::exception& ex)
         {
             std::cerr << ex.what();
+            app.quit();
         }
     });
-    label->setFixedSize(1066, 600);
-    label->setScaledContents(true);
-    label->show();
-    QObject::connect(label, &MyLabel::imageAvailable, label, &MyLabel::onImageAvailable);
     app.exec();
     t.detach();
 }

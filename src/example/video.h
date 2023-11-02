@@ -1,11 +1,4 @@
-#include <QtMultimedia/QVideoFrame.h>
-#include <QtMultimedia/QMediaPlayer.h>
-#include <QMediaDevices>
-#include <QtMultimediaWidgets>
-#include <QAudioDevice>
-#include <QAudioOutput>
-#include <QApplication>
-#include <QWidget>
+#include <QLabel>
 
 class MyLabel: public QLabel{
 Q_OBJECT

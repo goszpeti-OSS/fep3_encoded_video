@@ -13,38 +13,37 @@
 # 
 #
 fep3_participant_create_copy_target(easy_core_example)
-set_target_properties(fep_participant_file_copy_easy_core_example PROPERTIES FOLDER "examples/easy_core_example")
-
-# find the package
-find_package(fep3_participant_core REQUIRED)
 
 ##################################################################
 # DEMO EASY Sender with a CORE ElementBase
 ##################################################################
-# add_executable(demo_easy_core_sender
-#                core_sender_main.cpp
-#                example_ddl_types.h)
+add_executable(video_sender
+               video_sender.cpp
+)
 
-# set_target_properties(demo_easy_core_sender PROPERTIES FOLDER "examples/easy_core_example")
-# # link against the fep3_participant
-# target_link_libraries(demo_easy_core_sender PRIVATE
-#                       fep3_participant_core)
-# add_dependencies(demo_easy_cpp_sender fep_participant_file_copy_easy_core_example)
-# fep3_participant_install(demo_easy_core_sender examples/bin)
+# link against the fep3_participant
+target_link_libraries(video_sender PRIVATE
+                      fep3_participant_core
+                      qt::qt)
+add_dependencies(video_sender fep_participant_file_copy_easy_core_example)
+target_compile_options(video_sender PRIVATE "/Od")
+
+# fep3_participant_install(video_sender examples/bin)
 
 ##################################################################
 # DEMO EASY Receiver with a CORE ElementBase
 ##################################################################
-add_executable(demo_easy_core_receiver
-               core_receiver_main.cpp
+add_executable(video_player
+               video_player.cpp
                video.h
                )
+fep_fast_dds_plugin_deploy(video_player)
+target_compile_options(video_player PRIVATE "/Od")
 
-set_target_properties(demo_easy_core_receiver PROPERTIES FOLDER "examples/easy_core_example")
 # link against the fep3_participant_core API
-target_link_libraries(demo_easy_core_receiver PRIVATE
+target_link_libraries(video_player PRIVATE
                       fep3_participant_core
                       qt::qt)
-add_dependencies(demo_easy_core_receiver fep_participant_file_copy_easy_core_example)
-fep3_participant_install(demo_easy_core_receiver examples/bin)
+add_dependencies(video_player fep_participant_file_copy_easy_core_example)
+# fep3_participant_install(video_player examples/bin)
 
